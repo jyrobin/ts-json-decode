@@ -1,0 +1,10 @@
+import { Decoder } from "./shared";
+export declare const minLength: (length: number) => Decoder<string>;
+export declare const maxLength: (length: number) => Decoder<string>;
+export declare const lengthWithin: (minLength: number, maxLength: number) => Decoder<string>;
+export declare const min: (minValue: number) => Decoder<number>;
+export declare const max: (maxValue: number) => Decoder<number>;
+export declare const within: (minValue: number, maxValue: number) => Decoder<number>;
+export declare const format: (pattern: RegExp) => Decoder<string>;
+export declare const notEmpty: Decoder<string>;
+export declare const int: Decoder<number>;

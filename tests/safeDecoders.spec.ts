@@ -10,6 +10,7 @@ import {
   nullable,
   num,
   object,
+  astype,
   oneOf,
   str,
   union,
@@ -635,6 +636,130 @@ describe("Safe decoders", () => {
         expect(decodeString(decoder, input)).toEqual(expected);
       });
     });
+
+    describe("astype", () => {
+      it("should parse a simple object according to the given decoders", () => {
+        const decoder = astype({
+          foo: str,
+          bar: num,
+          baz: array(bool),
+        });
+
+        const input = `
+          {
+            "foo": "bar",
+            "bar": 42,
+            "baz": [true, false]
+          }
+        `;
+
+        const wrongInput = `
+          {
+            "foo": "bar",
+            "bar": "42",
+            "baz": [true, false]
+          }
+        `;
+
+        const expected = { foo: "bar", bar: 42, baz: [true, false] };
+
+        expect(decodeString(decoder)(input)).toEqual(expected);
+        expect(decodeString(decoder, input)).toEqual(expected);
+
+        expect(() => decodeString(decoder)(wrongInput)).toThrow(DecodeError);
+        expect(() => decodeString(decoder, wrongInput)).toThrow(DecodeError);
+      });
+
+      it("should parse a simple object according to the given decoders and allow extra attributes", () => {
+        const decoder = astype({
+          foo: str,
+          bar: num,
+          baz: array(bool),
+        });
+
+        const input = `
+          {
+            "foo": "bar",
+            "bar": 42,
+            "baz": [true, false],
+            "qux": true
+          }
+        `;
+
+        const wrongInput = `
+        {
+          "foo": "bar",
+          "bar": "42",
+          "baz": [true, false],
+          "qux": true
+        }
+      `;
+
+        // The value is expected to be present at runtime
+        // but won't be accessible at compile time
+        const expected = { foo: "bar", bar: 42, baz: [true, false], qux: true };
+
+        expect(decodeString(decoder)(input)).toEqual(expected);
+        expect(decodeString(decoder, input)).toEqual(expected);
+
+        expect(() => decodeString(decoder)(wrongInput)).toThrow(DecodeError);
+        expect(() => decodeString(decoder, wrongInput)).toThrow(DecodeError);
+      });
+
+      it("should parse a complex object according to the given decoders", () => {
+        const decoder = astype({
+          foo: str,
+          bar: astype({
+            qux: array(nullable(bool)),
+            quux: num,
+          }),
+          baz: array(bool),
+        });
+
+        const input = `
+          {
+            "foo": "bar",
+            "bar": {
+              "qux": [true, null, false],
+              "quux": 42
+            },
+            "baz": [true, false]
+          }
+        `;
+
+        const expected = {
+          foo: "bar",
+          bar: { qux: [true, null, false], quux: 42 },
+          baz: [true, false],
+        };
+
+        expect(decodeString(decoder)(input)).toEqual(expected);
+        expect(decodeString(decoder, input)).toEqual(expected);
+      });
+
+      it("should still support transformers (like map), ignoring the result", () => {
+        const decoder = astype({
+          foo: map(({ length }) => length, str),
+          bar: str,
+        });
+
+        const input = `
+          {
+            "foo": "bar",
+            "bar": "baz"
+          }
+        `;
+
+        const expected = {
+          foo: "bar",
+          bar: "baz",
+        };
+
+        expect(decodeString(decoder)(input)).toEqual(expected);
+        expect(decodeString(decoder, input)).toEqual(expected);
+      });
+    });
+
 
     describe("record", () => {
       it("should parse a simple record according to the given decoder", () => {
