@@ -302,6 +302,33 @@ export const object = <T extends DecoderDict>(
   return decodedValue;
 };
 
+// `astype` only checks types without creating a new object
+export const astype = <T extends DecoderDict>(
+  decoders: T,
+): Decoder<DecoderValueDict<T>> => (value): DecoderValueDict<T> => {
+  if (!isPlainObject(value)) {
+    throw new DecodeError("object", getAccurateTypeOf(value));
+  }
+
+  for (const key in decoders) {
+    try {
+      decoders[key](value[key]);
+    } catch (error) {
+      if (error instanceof DecodeError) {
+        throw new DecodeError(
+          `${error.expected} at field "${key}"`,
+          error.received,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  return value;
+};
+
+
 // `record` will build a new object at runtime, and should probably not be used for large objects
 export const record = <T>(decoder: Decoder<T>): Decoder<Record<string, T>> => (
   value,
